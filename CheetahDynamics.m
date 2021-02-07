@@ -14,7 +14,13 @@ frost_addpath;
 
 addpath(genpath('urdf'));
 genpath('urdf');
-urdf = fullfile('urdf','mini_cheetah_mesh.urdf');
+
+% order of legs are different in v1 and v2
+% v2 aligns with the convention we used on mini cheetah
+% v1: front left, front right, hind left, hind right
+% v2: front right, front left, hind right, hind left
+urdf = fullfile('urdf','mini_cheetah_v2.urdf');
+
 %%
 mc = MiniCheetah(urdf);
 %%

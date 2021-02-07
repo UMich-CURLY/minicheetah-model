@@ -16,6 +16,10 @@ frost_addpath;
 addpath(genpath('urdf'));
 
 %% Load model
+% order of legs are different in v1 and v2
+% v2 aligns with the convention we used on mini cheetah
+% v1: front left, front right, hind left, hind right
+% v2: front right, front left, hind right, hind left
 miniCheetah = MC_model(fullfile('urdf','mini_cheetah_v2.urdf'));
 
 %% Export Kinematics

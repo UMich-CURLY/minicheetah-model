@@ -75,7 +75,56 @@ classdef MiniCheetah < RobotLinks
 %             obj = addHolonomicConstraint(obj, four_bar_constr);
 %             
 %             
-%             Define contact frames
+            % Define contact frames
+            
+            % Right front foot
+            thigh2knee_fr_frame = obj.Joints(getJointIndices(obj, 'thigh_fr_to_knee_fr_j'));
+              
+            obj.ContactPoints.foot_fr = CoordinateFrame(...
+                'Name','fr_foot',...
+                'Reference',thigh2knee_fr_frame,...
+                'Offset',[0, 0, -0.215],...
+                'R',eye(3)...
+                );
+            
+            disp(obj.ContactPoints.foot_fr);
+            
+            % Left front foot
+            thigh2knee_fl_frame = obj.Joints(getJointIndices(obj, 'thigh_fl_to_knee_fl_j'));
+              
+            obj.ContactPoints.foot_fl = CoordinateFrame(...
+                'Name','fl_foot',...
+                'Reference',thigh2knee_fl_frame,...
+                'Offset',[0, 0, -0.215],...
+                'R',eye(3)...
+                );
+            
+            disp(obj.ContactPoints.foot_fl);
+            
+            % Right hind foot
+            thigh2knee_hr_frame = obj.Joints(getJointIndices(obj, 'thigh_hr_to_knee_hr_j'));
+              
+            obj.ContactPoints.foot_hr = CoordinateFrame(...
+                'Name','hr_foot',...
+                'Reference',thigh2knee_hr_frame,...
+                'Offset',[0, 0, -0.215],...
+                'R',eye(3)...
+                );
+            
+            disp(obj.ContactPoints.foot_hr);
+            
+            % Left hind foot
+            thigh2knee_hl_frame = obj.Joints(getJointIndices(obj, 'thigh_hl_to_knee_hl_j'));
+              
+            obj.ContactPoints.foot_hl = CoordinateFrame(...
+                'Name','hl_foot',...
+                'Reference',thigh2knee_hl_frame,...
+                'Offset',[0, 0, -0.215],...
+                'R',eye(3)...
+                );
+            
+            disp(obj.ContactPoints.foot_hl);
+            
 %             R = Angles.Rz(deg2rad(50))*Angles.Ry(-pi/2);
 %             R = [0,-sin(deg2rad(50)),-cos(deg2rad(50)); 0,cos(deg2rad(50)),-sin(deg2rad(50)); 1,0,0];
 %                  
@@ -274,6 +323,20 @@ classdef MiniCheetah < RobotLinks
             
             De_full = De + De_motor;
             
+            % Compute positions of contact points
+            cp_fields = fields(obj.ContactPoints);
+            for i = 1:length(cp_fields)
+                p = obj.ContactPoints.(cp_fields{i}).computeCartesianPosition;
+                J = jacobian(p, obj.States.x);
+                H = obj.ContactPoints.(cp_fields{i}).computeForwardKinematics;
+                R = H(1:3,1:3);
+                export_function(p, ['p_', obj.ContactPoints.(cp_fields{i}).Name], export_path, obj.States.x);
+                export_function(J, ['Jp_', obj.ContactPoints.(cp_fields{i}).Name], export_path, obj.States.x);
+%                 export_function(H, ['H_', obj.ContactPoints.(cp_fields{i}).Name], export_path, obj.States.x);
+%                 export_function(R, ['R_', obj.ContactPoints.(cp_fields{i}).Name], export_path, obj.States.x);
+                dJ = jacobian(J*obj.States.dx, obj.States.x);%%%
+                export_function(dJ, ['dJp_', obj.ContactPoints.(cp_fields{i}).Name], export_path, {obj.States.x,obj.States.dx});%%%
+            end
             
             export_function(De_full, ['De_', obj.Name], export_path, obj.States.x);
             
