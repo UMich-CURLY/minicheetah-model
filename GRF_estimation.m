@@ -5,6 +5,10 @@ cur_pth = pwd;
 gen_pth = append(cur_pth, '/gen/dyn/eigen/mex');
 addpath(gen_pth);
 
+%% add thirdparty path
+
+thirdparty_pth = append(cur_pth, '/thirdparty');
+addpath(genpath(thirdparty_pth));
 %% load data
 data_pth = "C:\Users\tylin\Documents\MATLAB\data";
 addpath(data_pth);
@@ -48,12 +52,14 @@ qd = [zeros(num_data,3)'; imu_drpy'; qd']';
 % decimal place, which indicates the 4th decimal place in lcm_timestamp is
 % just a guessing number. 
 
+tic
 diff_qd = qd(1:num_data-1,:) - qd(2:num_data,:);
 dt = control_timestamp(1,1:num_data-1) - control_timestamp(1,2:num_data);
-diff_qd_fil = mean(diff_qd,10);
-% qdd = diff_qd_fil ./ dt';
-qdd = diff_qd_fil ./ 0.002;
-qdd = mean(qdd,10);
+diff_qd_fil = medfilt1(diff_qd,15,[],1);
+qdd = diff_qd_fil ./ dt';
+% qdd = diff_qd_fil ./ 0.002;
+qdd = medfilt1(qdd,15,[],1);
+toc
 
 % figure(1);
 % plot(1:num_data-1,qdd(1:num_data-1,3));
@@ -80,7 +86,7 @@ B = [zeros(6,12); eye(12)];
 % J_hl = Jp_hl_foot_mex(q(1,:)');
 
 F = zeros(num_data-1,12);
-
+tic
 % De*qdd + Ce*qd + Ge = B*tau + J'*F
 for i = 1:num_data-1
     % Get matrices from the dynamic model
@@ -95,12 +101,42 @@ for i = 1:num_data-1
     J_hl = Jp_hl_foot_mex(q(i,:)');
     J = [J_fr; J_fl; J_hr; J_hl];
     
-%     temp = De*qdd(i,:)'+Ce*qd(i,:)'+Ge-B*tau_est(i,:)';
     F(i,:) = (J' \ (De*qdd(i,:)'+Ce*qd(i,:)'+Ge-B*tau_est(i,:)'))';
 
 end
+toc
 
+% F = zeros(num_data-10,12);
+% tic
+% filter_size = 10;
+% % De*qdd + Ce*qd + Ge = B*tau + J'*F
+% for i = filter_size:num_data
+%     % Get matrices from the dynamic model
+%     De = De_mini_cheetah_mex(q(i,:)');
+%     Ce = Ce_mini_cheetah_mex(q(i,:)',qd(i,:)');
+%     Ge = Ge_mini_cheetah_mex(q(i,:)');
+%     
+%     % construct the Jacobian matrix
+%     J_fr = Jp_fr_foot_mex(q(i,:)');
+%     J_fl = Jp_fl_foot_mex(q(i,:)');
+%     J_hr = Jp_hr_foot_mex(q(i,:)');
+%     J_hl = Jp_hl_foot_mex(q(i,:)');
+%     J = [J_fr; J_fl; J_hr; J_hl];
+%     
+%     qdd = zeros(1,length(qd(1,:)));
+%     for j = 1:length(qd(1,:))
+%         p = polyfit(i-filter_size+1:i,qd(i-filter_size+1:i,j),2);
+%         dp = polyder(p);
+%         qdd(j) = polyval(dp,i); 
+%     end
+%     F(i,:) = (J' \ (De*qdd'+Ce*qd(i,:)'+Ge-B*tau_est(i,:)'))';
+% 
+% %     F(i,:) = (J' \ (De*qdd(i,:)'+Ce*qd(i,:)'+Ge-B*tau_est(i,:)'))';
+% 
+% end
+% toc
 
+%%
 figure(3)
 plot(1:length(F(:,3)),F(:,3));
 hold on
@@ -111,5 +147,5 @@ hold on
 plot(1:length(F(:,12)),F(:,12));
 hold on
 plot(1:length(tau_est(:,3)),tau_est(:,3));
-legend("GRF\_fr","GRF\_fl","GRF\_hr","GRF\_hl","Tau\_est");
+legend("GRF\_fr","GRF\_fl","GRF\_hr","GRF\_hl");
 
