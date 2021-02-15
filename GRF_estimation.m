@@ -144,7 +144,7 @@ period_thres = 0.1;
 local_max = islocalmax(F_magnitude) & (F_magnitude > mean(F_magnitude, 1, 'omitnan'));
 local_min = islocalmin(F_magnitude) & (F_magnitude < mean(F_magnitude, 1, 'omitnan'));
 
-contacts = false(num_data-1,4);
+contacts = false(num_data,4);
 tic
 % loop through number of legs
 for i = 1:4
@@ -170,20 +170,20 @@ for i = 1:4
         contact_start = max_idx(k);
         
     end
-    contacts(F_magnitude(:,1) < mean(F_magnitude(:,1), 1, 'omitnan'),i)=0;
+    contacts(F_magnitude(:,i) < mean(F_magnitude(:,i), 1, 'omitnan'),i)=0;
 end
 toc
 
 %% plot to visualize
 figure(5)
-plot(control_time(1,1:end-1),F_magnitude(:,1));
+plot(control_time(1,1:end-1),F_magnitude(:,2));
 hold on
-% plot(control_time(1,local_max(:,1)),F_magnitude(local_max(:,1),1), "r*");
+% plot(control_time(1,local_max(:,2)),F_magnitude(local_max(:,2),2), "r*");
 % hold on
 % 
-% plot(control_time(1,local_min(:,1)),F_magnitude(local_min(:,1),1), "b*");
+% plot(control_time(1,local_min(:,2)),F_magnitude(local_min(:,2),2), "b*");
 % hold on
-plot(control_time(1,contacts(:,1)),F_magnitude(contacts(:,1),1), "g*");
+plot(control_time(1,contacts(:,2)),F_magnitude(contacts(:,2),2), "g*");
 % hold on
 legend("GRF","contacts");
 %% load mocap data to verify
@@ -237,7 +237,7 @@ legend("mocap\_leg\_position","contacts","non\_contacts");
 
 %%
 save('sync_data.mat', ...
-     'control_time', 'q', 'p', 'qd', 'v', 'tau_est', ...
+     'control_time', 'q', 'p', 'qd', 'v', 'tau_est', 'contacts', ...
      'imu_time', 'imu_acc', 'imu_omega', 'imu_rpy', 'imu_quat');
  
  
