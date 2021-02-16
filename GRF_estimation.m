@@ -1,4 +1,4 @@
-clear; clc;
+% clear; clc;
 
 %% add path
 cur_pth = pwd;
@@ -17,15 +17,20 @@ load(append(data_name,".mat"));
 
 % find start index
 % start_idx = find(leg_control_data.tau_est(:,3)>0,1);
-start_idx = 551947;
-end_idx = 601899;
-control_time = leg_control_data.lcm_timestamp(start_idx:end_idx);
-lcm_start_time = control_time(1);
-lcm_end_time = control_time(end);
+% start_idx = 551947;
+% end_idx = 601899;
+% control_time = leg_control_data.lcm_timestamp(start_idx:end_idx);
+lcm_start_time = 1115.22000000000;
+lcm_end_time = 1151.50000000000;
+control_time = leg_control_data.lcm_timestamp;
+% lcm_start_time = control_time(1);
+% lcm_end_time = control_time(end);
 % plot(leg_control_data.lcm_timestamp(start_idx:end),leg_control_data.tau_est(start_idx:end,3));
 
 % extract leg_control data
-p = leg_control_data.p(start_idx:end_idx,:);
+[start_idx, end_idx, control_time, p] = crop_data(control_time, leg_control_data.p, lcm_start_time, lcm_end_time);
+% control_time = control_time - control_time(1); % shift control time to start from 0
+% p = leg_control_data.p(start_idx:end_idx,:);
 q = leg_control_data.q(start_idx:end_idx,:);
 qd = leg_control_data.qd(start_idx:end_idx,:);
 v = leg_control_data.v(start_idx:end_idx,:);
@@ -186,6 +191,9 @@ hold on
 plot(control_time(1,contacts(:,2)),F_magnitude(contacts(:,2),2), "g*");
 % hold on
 legend("GRF","contacts");
+
+
+
 %% load mocap data to verify
 mocap_pth = "C:\Users\tylin\Documents\MATLAB\data\08282020_trial1_data";
 mocap_struct = who(matfile(mocap_pth));
@@ -229,11 +237,30 @@ non_contacts = ~contacts;
 figure(6);
 plot(mocap_t, mocap_leg_z(:,1));
 hold on
-plot(control_time(1,contacts(:,1))-control_time(1,1),temp(contacts(:,1),1), "g*");
+plot(control_time(1,contacts(:,1)),temp(contacts(:,1),1), "g*");
 hold on
-plot(control_time(1,non_contacts(:,1))-control_time(1,1),temp(non_contacts(:,1),1), "r*");
+plot(control_time(1,non_contacts(:,1)),temp(non_contacts(:,1),1), "r*");
 
 legend("mocap\_leg\_position","contacts","non\_contacts");
+
+% %% to run this session, run utils/mocap_lcm_sync.m first.
+% figure(7)
+% plot(control_time,contacts(:,1),"g*");
+% hold on
+% plot(mocap_t,contact_labels(:,1), "b*");
+% ylim([-0.5 1.5]);
+% legend("GRF","mocap");
+% 
+% %% to run this session, run utils/mocap_lcm_sync.m first.
+% figure(8)
+% plot(control_time(1,1:end-1),F_magnitude(:,1));
+% hold on
+% plot(mocap_t, 500*mocap_leg_z(:,1)+170);
+% hold on
+% plot(control_time(1,contacts(:,1)),F_magnitude(contacts(:,1),1), "b*");
+% hold on
+% plot(mocap_t(1,contact_labels(:,1)),500*mocap_leg_z(contact_labels(:,1),1)+170, "r*");
+% legend("GRF","mocap\_leg\_position","contact\_GRF","contact\_mocap");
 
 %%
 save('sync_data.mat', ...
