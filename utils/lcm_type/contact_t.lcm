@@ -1,0 +1,9 @@
+package inekf;
+
+struct contact_t
+{
+    int8_t  num_joints;
+    double  lcm_timestamp;
+    double  tau_feed_back[num_joints];
+    double  tau_feed_forward[num_joints];
+}

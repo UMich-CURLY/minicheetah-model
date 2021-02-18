@@ -1,0 +1,8 @@
+package inekf;
+
+struct groundtruth_t
+{
+    int8_t  num_legs;
+    double  mocap_timestamp;
+    int8_t  contact[num_legs];
+}
