@@ -1,26 +1,66 @@
 % clear; clc;
-
+clf
 %% add path
 cur_pth = pwd;
 gen_pth = append(cur_pth, '/gen/dyn/eigen/mex');
 addpath(gen_pth);
 thirdparty_pth = append(cur_pth, '/thirdparty');
 addpath(genpath(thirdparty_pth));
+data_saved_pth = append(cur_pth,'/data');
+addpath(data_saved_pth);
 
 %% load data
-data_pth = "C:\Users\tylin\Documents\MATLAB\data";
+data_pth = "F:\UM\mini_cheetah\2021-02-21_contact_data_in_lab\lcm";
 addpath(data_pth);
 data_name = "lcmlog-2020-08-29-00";
 load(append(data_name,".mat"));
 
+manual_fix = false;
 %%
-% plot(leg_control_data.lcm_timestamp,leg_control_data.p(:,3));
+% plot(leg_control_data.lcm_timestamp,leg_control_data.p(1:end,3));
 
 %%
 % find start index
 filter_size = 11;
-lcm_start_time = 1115.22000000000;
-lcm_end_time = 1151.50000000000;
+est_period = 0.15;
+
+% mocap 08 29 00
+lcm_start_time = 1115.4;
+lcm_end_time = 1232.23;
+
+% 3
+% lcm_start_time = 21.119;
+% lcm_end_time = 137.552;
+
+% 4
+% lcm_start_time = 9.44041;
+% lcm_end_time = 131.881;
+
+% 5 short
+% lcm_start_time = 10.5162;
+% lcm_end_time = 57.1235;
+
+% 6
+% lcm_start_time = 6.73;
+% lcm_end_time = 147.888;
+
+% 7
+% lcm_start_time = 15.9883;
+% lcm_end_time = 75.0456;
+
+% 8 not usable
+% lcm_start_time = 15.9883;
+% lcm_end_time = 75.0456;
+
+% 10 jumping
+% lcm_start_time = 7.92166;
+% lcm_end_time = 131.127;
+
+% load manual data from file.
+
+if manual_fix
+    load(append('contacts_manual_fix_',append(data_name,".mat")));
+end
 control_time = leg_control_data.lcm_timestamp;
 
 % extract leg_control data
@@ -147,15 +187,15 @@ end
 
 % plot(1:length(F_mag_smooth(:,1)),F_mag_smooth(:,1));
 
-%% detect contact
-period_thres = 0.08;
+%% detect contact from GRF
+period_thres = 0.04;
 
 local_max = islocalmax(F_magnitude) & (F_magnitude > mean(F_magnitude, 1, 'omitnan'));
-local_min = islocalmin(F_magnitude) & (F_magnitude < mean(F_magnitude, 1, 'omitnan'));
+local_min = islocalmin(F_magnitude) & (F_magnitude < mean(F_magnitude(islocalmin(F_magnitude)), 1, 'omitnan'));
 
 contacts = false(new_num_data,4);
-remove_first_couple = 0;
-% contact_shift = 9;
+remove_first_couple = 10;
+contact_shift = 9;
 tic
 % loop through number of legs
 for i = 1:4
@@ -189,6 +229,104 @@ for i = 1:4
 end
 toc
 
+%% detect contact using foot position from FK
+est_period_idx = floor(est_period / 0.002);
+foot_z_pos = [p(:,3), p(:,6), p(:,9), p(:,12)];
+foot_local_max = islocalmax(foot_z_pos,'MinSeparation',est_period_idx) & (foot_z_pos > mean(foot_z_pos, 1, 'omitnan'));
+% contact_labels = islocalmin(foot_z_pos) & (foot_z_pos < mean(foot_z_pos, 1, 'omitnan'));
+% foot_local_min = islocalmin(foot_z_pos) & (foot_z_pos < mean(foot_z_pos, 1, 'omitnan'));
+contact_labels = islocalmin(foot_z_pos);
+foot_local_min = islocalmin(foot_z_pos); 
+
+for l = 1:size(foot_z_pos, 2)
+    contact_singleleg = contact_labels(:,l);
+    peak_singleleg = foot_local_max(:,l);
+
+    % indexes at which local mins and maxes occurred
+    contact_idxs = find(contact_singleleg);
+    peak_idxs = find(peak_singleleg);
+
+    % for clarity/safety, we start searching for contact only after 1st peak
+    contact_idxs(contact_idxs < peak_idxs(1)) = 0;
+    i = find(contact_idxs, 1);
+    j = 2;
+
+    while i <= size(contact_idxs, 1) && j <= size(peak_idxs, 1)
+        contact_start = contact_idxs(i);
+        next_peak = peak_idxs(j);
+
+        while i <= size(contact_idxs, 1) && contact_idxs(i) < next_peak 
+            contact_end = contact_idxs(i);
+            i = i + 1;
+        end
+
+        contact_singleleg(contact_start:contact_end) = 1;
+        j = j + 1;
+    end
+    
+    contact_labels(:,l) = contact_singleleg;
+end
+
+contacts = contact_labels;
+
+
+%% load manual contact labels and fix contact points
+
+%     manual_label_fix = [];
+%     load(append('contacts_manual_fix_',append(data_name,".mat")));
+
+
+manual_label_fix_backup = manual_label_fix;
+manual_fix = true;
+if manual_fix
+    for i=1:size(manual_label_fix,1)
+        contacts(manual_label_fix(i,3):manual_label_fix(i,4),manual_label_fix(i,1))...
+         = manual_label_fix(i,2);
+    end
+end
+
+
+%% save manual data% save(append('contacts_manual_fix_',append(data_name,".mat")), ...
+%          'manual_label_fix','lcm_start_time','lcm_end_time');
+
+
+%% print foot_z_pos with respect to control time
+% for i = 1:4
+%     figure(20+i)
+%     plot(control_time(1,1:end),foot_z_pos(:,i));
+%     hold on
+%     plot(control_time(1,contact_labels(:,i)),foot_z_pos(contact_labels(:,i),i), "g*");
+%     hold on
+%     plot(control_time(1,foot_local_max(:,i)),foot_z_pos(foot_local_max(:,i),i), "r*");
+%     hold on
+% 
+%     plot(control_time(1,foot_local_min(:,i)),foot_z_pos(foot_local_min(:,i),i), "b*");
+%     hold on
+% 
+%     legend("foot_pos","contacts","local\_max","local\_min");
+%     title("foot\_position"+i)
+% end
+
+%% visualize f_z_pos with respect to index
+
+for i = 1:4
+    
+    figure(24+i)
+    idx_list = 1:size(foot_z_pos(:,i));
+    plot(idx_list,foot_z_pos(:,i));
+    hold on
+    plot(idx_list(1,contacts(:,i)),foot_z_pos(contacts(:,i),i), "g*");
+    hold on
+    plot(idx_list(1,foot_local_max(:,i)),foot_z_pos(foot_local_max(:,i),i), "r*");
+    hold on
+
+    plot(idx_list(1,foot_local_min(:,i)),foot_z_pos(foot_local_min(:,i),i), "b*");
+    hold on
+
+    legend("foot_pos","contacts","local\_max","local\_min");
+    title("foot\_position"+i)
+end
+
 %% visualize force versus local max/ min
 % figure(5)
 % plot(control_time(1,1:end),F_magnitude(:,1));
@@ -203,18 +341,18 @@ toc
 % 
 % legend("GRF","contacts","local\_max","local\_min");
 
-%% visualization with foot position
+%% visualization GRF with foot position
 % for i =1:4
 %     figure(13+i)
-% %     plot(control_time(1,1:end),F_magnitude(:,i));
-% %     hold on
-% %     plot(control_time(1,contacts(:,i)),F_magnitude(contacts(:,i),i), "b*");
-% %     hold on
+%     plot(control_time(1,1:end),F_magnitude(:,i));
+%     hold on
+%     plot(control_time(1,contacts(:,i)),F_magnitude(contacts(:,i),i), "b*");
+%     hold on
 %     plot(control_time(1,1:end),500*p(1:end,3*i)+180);
 %     hold on
 %     plot(control_time(1,contacts(:,i)),500*p(contacts(:,i),3*i)+180, "g*");
 %     % hold on
-%     legend("leg\_pos\_z","contacts");
+%     legend("GRF","contacts","leg\_pos\_z","contacts");
 %     title(i);
 % end
 
@@ -290,20 +428,49 @@ toc
 % plot(mocap_t(1,contact_labels(:,1)),500*mocap_leg_z(contact_labels(:,1),1)+170, "r*");
 % legend("GRF","mocap\_leg\_position","contact\_GRF","contact\_mocap");
 
-%% 
-% contact_time = control_time(1,1:5:end);
-% contacts = contacts(1:5:end,:);
+%% map control data (500 Hz) to imu frequency (1000 Hz)
 
-% contact_time = mocap_t;
-% contacts = contact_labels;
+% find the highest frequency set of data and make it univ_t
+t_vars = ["control_time", "imu_time"];
+t_sizes = [size(control_time, 2), size(imu_time, 2)];
+[~, max_t_idx] = max(t_sizes);
+% univ_t will be the set of timestamps that we change all inputs to correspond to
+univ_t = eval(t_vars(max_t_idx));
+
+univ_idx = zeros(size(univ_t, 2), size(t_vars, 2));
+for i = 1:size(t_vars, 2)
+    t_i = eval(t_vars(i));
+    univ_idx(:,i) = knnsearch(t_i', univ_t');
+end
+
+contacts = contacts(univ_idx(:,1),:);
+p = p(univ_idx(:,1),:);
+q = q(univ_idx(:,1),:);
+qd = qd(univ_idx(:,1),:);
+v = v(univ_idx(:,1),:);
+tau_est = tau_est(univ_idx(:,1),:);
 
 % remove body states in q and qd
 q = q(:,7:end);
 qd = qd(:,7:end);
 
-save('sync_data_mocap_contact_correct.mat', ...
-     'control_time', 'q', 'p', 'qd', 'v', 'tau_est', 'contacts', ...
-     'imu_time', 'imu_acc', 'imu_omega', 'imu_rpy', 'imu_quat');
+%% visualize after mapping to the highest frequency
+% for i = 1:4
+%     figure(28+i)
+%     plot(imu_time(1,1:end),p(:,3*i));
+%     hold on
+%     plot(imu_time(1,contacts(:,i)),p(contacts(:,i),3*i), "g*");
+% 
+%     legend("foot_pos","contacts");
+%     title("foot\_position"+i)
+% end
+
+%% save data
+
+% save the data
+% save(append(data_saved_pth,'/',data_name,'_network_data.mat'), ...
+%      'control_time', 'q', 'p', 'qd', 'v', 'tau_est', 'contacts', ...
+%      'imu_time', 'imu_acc', 'imu_omega', 'imu_rpy', 'imu_quat');
  
  
  function [start_idx, end_idx, t, x] = crop_data(t_init, x_init, start_t, end_t)
