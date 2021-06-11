@@ -1,4 +1,4 @@
-clear; clc;
+% clear; clc;
 
 %% add path
 cur_pth = pwd;
@@ -11,26 +11,32 @@ addpath(data_saved_pth);
 addpath(append(cur_pth,'/data/manual_fix_labels'));
 
 %% load data
-data_pth = "D:\data\2021-06-05_forset_data\mat";
+data_pth = "D:\data\contact_data\2021-06-05_forset_data\raw_mat";
 data_saved_pth = data_pth;
 addpath(data_pth);
-data_name = "lcmlog-2021-06-05_09";
+data_name = "lcmlog-2021-06-05_04_small_pebble";
 load(append(data_name,".mat"));
 
 manual_fix = false; 
 %%
+figure(2147483646);
 plot(leg_control_data.lcm_timestamp,leg_control_data.p(1:end,3));
 % hold on
-% plot(leg_control_data.lcm_timestamp,leg_control_data.p(1:end,6));
+% plot(leg_control_data.lcm_timestamp,leg_control_data.p(1:end-1,3));
 % plot(microstrain.lcm_timestamp,microstrain.acc(1:end,3));
 %%
 % find start index
 filter_size = 11;
 est_period = 0.15;
 
+% 05-29
+
+% 06-02
 
 % lcm_start_time = 0;
 % lcm_end_time = 51;
+
+% 06-05
 
 % 00
 % lcm_start_time = 0;
@@ -49,8 +55,8 @@ est_period = 0.15;
 % lcm_end_time = 94.6;
 
 % 04
-% lcm_start_time = 18.45;
-% lcm_end_time = 82.72;
+lcm_start_time = 18.45;
+lcm_end_time = 82.72;
 
 % 05
 % lcm_start_time = 47.96;
@@ -166,16 +172,16 @@ qdd = diff_qd_fil ./ dt';
 % qdd = medfilt1(qdd,filter_size,[],1);
 toc
 
-figure(1);
-plot(1:num_data-1,qdd(1:num_data-1,9));
+% figure(1);
+% plot(1:num_data-1,qdd(1:num_data-1,9));
 % hold on;
 % plot(1:num_data-1, qd(1:num_data-1,3));
 % hold on;
 % plot(1:num_data-1, diff_qd(1:num_data-1,3));
 % legend("qdd","qd","diff\_qd",'FontSize', 18)
 
-title('$\ddot{q}$ via Numerical Differentiation','Interpreter','latex','FontSize', 18);
-legend('$\ddot{q}$','Interpreter','latex','FontSize', 18)
+% title('$\ddot{q}$ via Numerical Differentiation','Interpreter','latex','FontSize', 18);
+% legend('$\ddot{q}$','Interpreter','latex','FontSize', 18)
 
 % figure(2);
 % plot(1:num_data-1, qd(1:num_data-1,3));
@@ -235,24 +241,24 @@ end
 % plot(1:length(tau_est(:,3)),tau_est(:,3));
 % title("Estimated GRF");
 % legend("right front leg z")
-figure(3)
-% plot(2:length(F_magnitude(:,1)),medfilt1(diff(F_magnitude(:,1)),3,[],1));
+% figure(3)
+% % plot(2:length(F_magnitude(:,1)),medfilt1(diff(F_magnitude(:,1)),3,[],1));
+% % hold on
+% % plot(2:length(F_magnitude(:,1)),diff(F_magnitude(:,1)));
+% 
+% plot(1:length(F_magnitude(:,1)),F_magnitude(:,1));
 % hold on
-% plot(2:length(F_magnitude(:,1)),diff(F_magnitude(:,1)));
-
-plot(1:length(F_magnitude(:,1)),F_magnitude(:,1));
-hold on
-plot(1:length(F_magnitude(:,2)),F_magnitude(:,2));
-hold on
-plot(1:length(F_magnitude(:,3)),F_magnitude(:,3));
-hold on
-plot(1:length(F_magnitude(:,4)),F_magnitude(:,4));
-
-legend("GRF\_fr","GRF\_fl","GRF\_hr","GRF\_hl");
-title("Estimated GRF");
-% legend("right front leg")
-ylabel("Force Magnitude (N)");
-xlabel("index");
+% plot(1:length(F_magnitude(:,2)),F_magnitude(:,2));
+% hold on
+% plot(1:length(F_magnitude(:,3)),F_magnitude(:,3));
+% hold on
+% plot(1:length(F_magnitude(:,4)),F_magnitude(:,4));
+% 
+% legend("GRF\_fr","GRF\_fl","GRF\_hr","GRF\_hl");
+% title("Estimated GRF");
+% % legend("right front leg")
+% ylabel("Force Magnitude (N)");
+% xlabel("index");
 
 %% detect contact from GRF
 period_thres = 0.04;
@@ -319,7 +325,8 @@ for l = 1:size(foot_z_pos, 2)
     j = 2;
 
     while i <= size(contact_idxs, 1) && j <= size(peak_idxs, 1)
-        contact_start = contact_idxs(i);
+        contact_singleleg(contact_idxs(i)) = 0;
+        contact_start = contact_idxs(i+1);
         next_peak = peak_idxs(j);
 
         while i <= size(contact_idxs, 1) && contact_idxs(i) < next_peak 
@@ -343,14 +350,14 @@ contacts = contact_labels;
 %     load(append('contacts_manual_fix_',append(data_name,".mat")));
 
 
-% manual_label_fix_backup = manual_label_fix;
-% manual_fix = true;
-% if manual_fix
-%     for i=1:size(manual_label_fix,1)
-%         contacts(manual_label_fix(i,3):manual_label_fix(i,4),manual_label_fix(i,1))...
-%          = manual_label_fix(i,2);
-%     end
-% end
+manual_label_fix_backup = manual_label_fix;
+manual_fix = true;
+if manual_fix
+    for i=1:size(manual_label_fix,1)
+        contacts(manual_label_fix(i,3):manual_label_fix(i,4),manual_label_fix(i,1))...
+         = manual_label_fix(i,2);
+    end
+end
 
 
 %% save manual data% save(append('contacts_manual_fix_',append(data_name,".mat")), ...
@@ -376,23 +383,23 @@ contacts = contact_labels;
 
 %% visualize f_z_pos with respect to index
 
-% for i = 1:4
-%     
-%     figure(24+i)
-%     idx_list = 1:size(foot_z_pos(:,i));
-%     plot(idx_list,foot_z_pos(:,i));
-%     hold on
-%     plot(idx_list(1,contacts(:,i)),foot_z_pos(contacts(:,i),i), "g*");
-%     hold on
-%     plot(idx_list(1,foot_local_max(:,i)),foot_z_pos(foot_local_max(:,i),i), "r*");
-%     hold on
-% 
-%     plot(idx_list(1,foot_local_min(:,i)),foot_z_pos(foot_local_min(:,i),i), "b*");
-%     hold on
-% 
-%     legend("foot_pos","contacts","local\_max","local\_min");
-%     title("foot\_position"+i)
-% end
+for i = 1:4
+    
+    figure(24+i)
+    idx_list = 1:size(foot_z_pos(:,i));
+    plot(idx_list,foot_z_pos(:,i));
+    hold on
+    plot(idx_list(1,contacts(:,i)),foot_z_pos(contacts(:,i),i), "g*");
+    hold on
+    plot(idx_list(1,foot_local_max(:,i)),foot_z_pos(foot_local_max(:,i),i), "r*");
+    hold on
+
+    plot(idx_list(1,foot_local_min(:,i)),foot_z_pos(foot_local_min(:,i),i), "b*");
+    hold on
+
+    legend("foot_pos","contacts","local\_max","local\_min");
+    title("foot\_position"+i)
+end
 
 %% visualize force versus local max/ min
 % figure(5)
@@ -409,19 +416,19 @@ contacts = contact_labels;
 % legend("GRF","contacts","local\_max","local\_min");
 
 %% visualization GRF with foot position
-for i =1:4
-    figure(13+i)
-    plot(control_time(1,1:end),F_magnitude(:,i));
-    hold on
-    plot(control_time(1,contacts(:,i)),F_magnitude(contacts(:,i),i), "b*");
-    hold on
-    plot(control_time(1,1:end),500*p(1:end,3*i)+180);
-    hold on
-    plot(control_time(1,contacts(:,i)),500*p(contacts(:,i),3*i)+180, "g*");
-    hold on
-    legend("GRF","contacts","leg\_pos\_z","contacts");
-    title(i);
-end
+% for i =1:4
+%     figure(13+i)
+%     plot(control_time(1,1:end),F_magnitude(:,i));
+%     hold on
+%     plot(control_time(1,contacts(:,i)),F_magnitude(contacts(:,i),i), "b*");
+%     hold on
+%     plot(control_time(1,1:end),500*p(1:end,3*i)+180);
+%     hold on
+%     plot(control_time(1,contacts(:,i)),500*p(contacts(:,i),3*i)+180, "g*");
+%     hold on
+%     legend("GRF","contacts","leg\_pos\_z","contacts");
+%     title(i);
+% end
 
 %% load mocap data to verify
 % mocap_pth = "C:\Users\tylin\Documents\MATLAB\data\08282020_trial1_data";
@@ -524,16 +531,16 @@ q = q(:,7:end);
 qd = qd(:,7:end);
 
 %% visualize after mapping to the highest frequency
-for i = 1:4
-    figure(28+i)
-    plot(imu_time(1,1:end),p(:,3*i));
-    hold on
-    plot(imu_time(1,contacts(:,i)),p(contacts(:,i),3*i), "g*");
-
-    
-    legend("foot_pos","contacts");
-    title("foot\_position"+i)
-end
+% for i = 1:4
+%     figure(28+i)
+%     plot(imu_time(1,1:end),p(:,3*i));
+%     hold on
+%     plot(imu_time(1,contacts(:,i)),p(contacts(:,i),3*i), "g*");
+% 
+%     
+%     legend("foot_pos","contacts");
+%     title("foot\_position"+i)
+% end
 
 % figure(33)
 % plot(imu_time(1,1:end),F(:,3*i));
@@ -559,10 +566,10 @@ end
 %% save data
 
 % save the data
-save(append(data_saved_pth,'/',data_name,'_network_data.mat'), ...
-     'control_time', 'q', 'p', 'qd', 'v', 'tau_est', 'contacts', 'F', ...
-     'imu_time', 'imu_acc', 'imu_omega', 'imu_rpy', 'imu_quat');
- 
+% save(append(data_saved_pth,'/',data_name,'_network_data.mat'), ...
+%      'control_time', 'q', 'p', 'qd', 'v', 'tau_est', 'contacts', 'F', ...
+%      'imu_time', 'imu_acc', 'imu_omega', 'imu_rpy', 'imu_quat');
+%  
  
  function [start_idx, end_idx, t, x] = crop_data(t_init, x_init, start_t, end_t)
     start_idx = knnsearch(t_init', start_t);
