@@ -389,6 +389,7 @@ for i = 1:4
     idx_list = 1:size(foot_z_pos(:,i));
     plot(idx_list,foot_z_pos(:,i));
     hold on
+    
     plot(idx_list(1,contacts(:,i)),foot_z_pos(contacts(:,i),i), "g*");
     hold on
     plot(idx_list(1,foot_local_max(:,i)),foot_z_pos(foot_local_max(:,i),i), "r*");
@@ -396,8 +397,16 @@ for i = 1:4
 
     plot(idx_list(1,foot_local_min(:,i)),foot_z_pos(foot_local_min(:,i),i), "b*");
     hold on
-
-    legend("foot_pos","contacts","local\_max","local\_min");
+    
+%     plot(idx_list,p(:,3*i-1)-0.25);
+%     hold on
+%     plot(idx_list,p(:,3*i-2)-0.25);
+%     hold on
+    plot(idx_list,0.1*v(:,3*i)-0.25);
+    hold on 
+    plot(idx_list(1,contacts(:,i)),0.1*v(contacts(:,i),3*i)-0.25, "m*");
+    
+    legend("foot_pos","contacts","local\_max","local\_min","foot_y","foot_x");
     title("foot\_position"+i)
 end
 
@@ -531,16 +540,32 @@ q = q(:,7:end);
 qd = qd(:,7:end);
 
 %% visualize after mapping to the highest frequency
+for i = 1:4
+    figure(28+i)
+    plot(imu_time(1,1:end),p(:,3*i));
+    hold on
+    plot(imu_time(1,contacts(:,i)),p(contacts(:,i),3*i), "g*");
+
+    
+    legend("foot_pos","contacts");
+    title("foot\_position"+i)
+end
+
 % for i = 1:4
-%     figure(28+i)
-%     plot(imu_time(1,1:end),p(:,3*i));
+%     figure(32+i)
+%     plot(imu_time(1,1:end),v(:,3*i));
 %     hold on
-%     plot(imu_time(1,contacts(:,i)),p(contacts(:,i),3*i), "g*");
-% 
+%     plot(imu_time(1,contacts(:,i)),v(contacts(:,i),3*i), "g*");
+% %     hold on
+% %     plot(imu_time(1,1:end),v(:,3*i-1));
+% %     hold on
+% %     plot(imu_time(1,1:end),v(:,3*i-2));
+% %     hold on
 %     
-%     legend("foot_pos","contacts");
-%     title("foot\_position"+i)
+%     legend("foot_v_z","contacts");
+%     title("foot\_velocity"+i)
 % end
+
 
 % figure(33)
 % plot(imu_time(1,1:end),F(:,3*i));
@@ -569,7 +594,7 @@ qd = qd(:,7:end);
 % save(append(data_saved_pth,'/',data_name,'_network_data.mat'), ...
 %      'control_time', 'q', 'p', 'qd', 'v', 'tau_est', 'contacts', 'F', ...
 %      'imu_time', 'imu_acc', 'imu_omega', 'imu_rpy', 'imu_quat');
-%  
+ 
  
  function [start_idx, end_idx, t, x] = crop_data(t_init, x_init, start_t, end_t)
     start_idx = knnsearch(t_init', start_t);
